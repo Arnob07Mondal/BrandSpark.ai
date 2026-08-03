@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment & deployment secrets
+.env
+.firebase/
+.vercel/
+.firebase-debug.log
+
