@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User profile document rules
+    match /users/{userId} {
+      // 1. A user can read their own profile document
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // 2. A user can create their own profile document
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // 3. A user can update their own profile document
+      allow update: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Projects collection rules
+    match /projects/{projectId} {
+      allow read, update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Generations collection rules
+    match /generations/{generationId} {
+      allow read: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Favorites collection rules
+    match /favorites/{favoriteId} {
+      allow read, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Brand assets collection rules
+    match /brandAssets/{assetId} {
+      allow read, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Brand books collection rules
+    match /brandBooks/{brandBookId} {
+      allow read, update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Deny all other read/write accesses to other collections by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
