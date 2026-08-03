@@ -1,6 +1,5 @@
 import {
   getFirestore,
-  connectFirestoreEmulator,
   serverTimestamp,
   collection,
   doc,
