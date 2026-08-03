@@ -3,7 +3,7 @@ import admin from "firebase-admin";
 if (!admin.apps.length) {
   if (process.env.FIRESTORE_EMULATOR_HOST) {
     admin.initializeApp({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID || "brandspark-d7323"
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID || "brandsparkai-261cd"
     });
   } else {
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;

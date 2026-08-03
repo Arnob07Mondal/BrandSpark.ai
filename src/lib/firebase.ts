@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth'
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
+import { getAuth, GoogleAuthProvider } from 'firebase/auth'
+import { getFunctions } from 'firebase/functions'
 
 const getEnv = (key: string) => {
   const value = import.meta.env[key as keyof ImportMetaEnv]
@@ -50,7 +50,12 @@ export const googleProvider = new GoogleAuthProvider()
 // Initialize Firebase Functions
 export const functions = getFunctions(app)
 
-if (import.meta.env.DEV) {
-  connectFunctionsEmulator(functions, '127.0.0.1', 5001)
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-}
+// ---------------------------------------------------------------------------
+// LOCAL DEVELOPMENT — Firebase Emulator Connections
+// Uncomment this block to route Auth and Functions through the local emulators.
+// Keep commented out for production Vercel deployments.
+// ---------------------------------------------------------------------------
+// if (import.meta.env.DEV) {
+//   connectFunctionsEmulator(functions, '127.0.0.1', 5001)
+//   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+// }
