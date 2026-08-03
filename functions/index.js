@@ -330,10 +330,11 @@ exports.generateAIContent = onCall({ secrets: ["GEMINI_API_KEY"] }, async (reque
     // Retry settings
     const MAX_RETRIES = 3;
     const RETRY_STATUS_CODES = [429, 500, 502, 503, 504];
+    const TIMEOUT_MS = 60000;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
       try {
         const reqBody = JSON.stringify({

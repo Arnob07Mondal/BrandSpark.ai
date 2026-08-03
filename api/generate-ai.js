@@ -309,10 +309,14 @@ export default async function handler(req, res) {
     // Retry settings
     const MAX_RETRIES = 3;
     const RETRY_STATUS_CODES = [429, 500, 502, 503, 504];
+    const TIMEOUT_MS = 60000; // 60 seconds timeout
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const reqStartTime = Date.now();
+
+      console.log(`[Gemini Request] Attempt ${attempt}/${MAX_RETRIES} | Model: ${SELECTED_MODEL} | Timeout: ${TIMEOUT_MS}ms | Endpoint: ${GEMINI_API_URL}`);
 
       try {
         const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
@@ -329,9 +333,20 @@ export default async function handler(req, res) {
         });
 
         clearTimeout(timeoutId);
+        const reqDuration = Date.now() - reqStartTime;
+        console.log(`[Gemini Response] Status: ${response.status} | Duration: ${reqDuration}ms | Retry Occurred: ${attempt > 1}`);
 
         // Handle retriable HTTP failures
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error("========== GEMINI ERROR ==========");
+          console.error("HTTP Status:", response.status);
+          console.error("Endpoint:", GEMINI_API_URL);
+          console.error("Model:", SELECTED_MODEL);
+          console.error("Response Body:");
+          console.error(errorText);
+          console.error("==================================");
+
           if (RETRY_STATUS_CODES.includes(response.status) && attempt < MAX_RETRIES) {
             const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
             console.warn(`Attempt ${attempt} failed with status ${response.status}. Retrying in ${Math.round(delay)}ms...`);
@@ -339,12 +354,12 @@ export default async function handler(req, res) {
             continue;
           }
           
-          let errorDetail = "";
+          let errorDetail = errorText;
           try {
-            const errJson = await response.json();
-            errorDetail = errJson.error?.message || JSON.stringify(errJson);
+            const errJson = JSON.parse(errorText);
+            errorDetail = errJson.error?.message || errorText;
           } catch {
-            errorDetail = `HTTP error ${response.status}`;
+            errorDetail = `HTTP error ${response.status}: ${errorText}`;
           }
           throw new Error(errorDetail);
         }
@@ -361,7 +376,12 @@ export default async function handler(req, res) {
         break; // Exit retry loop on success
       } catch (err) {
         clearTimeout(timeoutId);
-        console.error(`Attempt ${attempt} error:`, err.message || err);
+        const isTimeout = controller.signal.aborted || err.name === "AbortError";
+        const errorMessage = isTimeout
+          ? "Gemini request exceeded 60 seconds and was cancelled."
+          : (err.message || String(err));
+
+        console.error(`Attempt ${attempt} error:`, errorMessage);
         
         if (attempt === MAX_RETRIES) {
           const duration = Date.now() - startTime;
@@ -370,14 +390,14 @@ export default async function handler(req, res) {
             ownerUid: decodedToken.uid,
             generationType: generationType === "Brand Name" ? "brand-name" : generationType,
             prompt,
-            response: { error: err.message || "Model timeout or fetch failure" },
+            response: { error: errorMessage },
             model: SELECTED_MODEL,
             createdAt: FieldValue.serverTimestamp(),
             status: "failed",
             generationTime: duration,
           });
 
-          return res.status(503).json({ error: `AI Generation service failed: ${err.message || "Request timed out."}` });
+          return res.status(503).json({ error: `AI Generation service failed: ${errorMessage}` });
         }
 
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
